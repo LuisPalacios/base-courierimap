@@ -1,0 +1,21 @@
+RANDFILE = /etc/courier/imapd.rand
+
+[ req ]
+default_bits = 4096
+encrypt_key = yes
+distinguished_name = req_dn
+x509_extensions = cert_type
+prompt = no
+default_md = sha1
+
+[ req_dn ]
+C=ES
+ST=Madrid
+L=Mi querido pueblo
+O=Org
+OU=Clave SSL IMAP
+CN=localhost
+emailAddress=postmaster@tld.org
+
+[ cert_type ]
+nsCertType = server
