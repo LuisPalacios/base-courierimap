@@ -2,8 +2,7 @@
 
 Este repositorio alberga un *contenedor Docker* para montar un servidor courier-imap. Lo encontrarás automatizado en el Registry Hub de Docker [luispa/base-couriermap](https://registry.hub.docker.com/u/luispa/base-couriermap/) conectado con el proyecto GitHub [base-couriermap](https://github.com/LuisPalacios/base-couriermap). 
 
-Te recomiendo que eches un vistazo al proyecto [servicio-correo](https://github.com/LuisPalacios/servicio-correo) como ejemplo de uso.
-
+Tengo otro repositorio [servicio-correo](https://github.com/LuisPalacios/servicio-correo) donde verás un ejemplo de uso. Además te recomiendo que consultes este [apunte técnico sobre varios servicios en contenedores Docker](http://www.luispa.com/?p=172) para tener una visión más global de otros contenedores Docker y fuentes en GitHub y entender mejor este ejemplo.
 
 
 ## Ficheros
