@@ -84,8 +84,6 @@ RUN mkimapdcert
 # Puertos por el que escucha el servidor
 #
 EXPOSE 143
-#EXPOSE 25143
-EXPOSE 993
 
 #-----------------------------------------------------------------------------------
 
