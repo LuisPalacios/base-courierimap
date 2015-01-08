@@ -95,7 +95,7 @@ fi
 #
 if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	
-	echo "Configuro imapd"
+	echo "Configuro IMAP !!"
 	
 	############
 	#
@@ -103,13 +103,54 @@ if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	#
 	############
 	
-	sed -i "s/^MAXDAEMONS=.*/MAXDAEMONS=60/g" /etc/courier/imapd
-    sed -i "s/^MAXPERIP=.*/MAXPERIP=100/g" /etc/courier/imapd
-    sed -i "s/^IMAP_TRASHFOLDERNAME=.*/IMAP_TRASHFOLDERNAME=\"Deleted Messages\"/g" /etc/courier/imapd
-    sed -i "s/^IMAP_EMPTYTRASH=.*/IMAP_EMPTYTRASH=\"Deleted Messages\":7/g" /etc/courier/imapd
-    sed -i "s/^MAILDIRPATH=.*/MAILDIRPATH=Maildir/g" /etc/courier/imapd
+	#sed -i "s/^MAXDAEMONS=.*/MAXDAEMONS=60/g" /etc/courier/imapd
+    #sed -i "s/^MAXPERIP=.*/MAXPERIP=100/g" /etc/courier/imapd
+    #sed -i "s/^IMAP_TRASHFOLDERNAME=.*/IMAP_TRASHFOLDERNAME=\"Deleted Messages\"/g" /etc/courier/imapd
+    #sed -i "s/^IMAP_EMPTYTRASH=.*/IMAP_EMPTYTRASH=\"Deleted Messages\":7/g" /etc/courier/imapd
+    #sed -i "s/^MAILDIRPATH=.*/MAILDIRPATH=Maildir/g" /etc/courier/imapd
 
-
+	### 
+	### INICIO FICHERO /etc/courier/imapd
+	### ------------------------------------------------------------------------------------------------
+	cat > /etc/courier/imapd <<-EOF_IMAPD
+	
+	ADDRESS=0
+	PORT=143
+	MAXDAEMONS=60
+	MAXPERIP=100
+	PIDFILE=/var/run/courier/imapd.pid
+	TCPDOPTS="-nodnslookup -noidentlookup"
+	LOGGEROPTS="-name=imapd"
+	IMAP_CAPABILITY="IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE"
+	IMAP_KEYWORDS=1
+	IMAP_ACL=1
+	IMAP_CAPABILITY_ORIG="IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA AUTH=CRAM-MD5 AUTH=CRAM-SHA1 AUTH=CRAM-SHA256 IDLE"
+	IMAP_PROXY=0
+	IMAP_PROXY_FOREIGN=0
+	IMAP_IDLE_TIMEOUT=30
+	IMAP_MAILBOX_SANITY_CHECK=1
+	IMAP_CAPABILITY_TLS="\$IMAP_CAPABILITY AUTH=PLAIN"
+	IMAP_CAPABILITY_TLS_ORIG="\$IMAP_CAPABILITY_ORIG AUTH=PLAIN"
+	IMAP_DISABLETHREADSORT=0
+	IMAP_CHECK_ALL_FOLDERS=0
+	IMAP_OBSOLETE_CLIENT=0
+	IMAP_UMASK=022
+	IMAP_ULIMITD=131072
+	IMAP_USELOCKS=1
+	IMAP_SHAREDINDEXFILE=/etc/courier/shared/index
+	IMAP_ENHANCEDIDLE=1
+	IMAP_TRASHFOLDERNAME="Deleted Messages"
+	IMAP_EMPTYTRASH="Deleted Messages":7
+	IMAP_MOVE_EXPUNGE_TO_TRASH=0
+	SENDMAIL=/usr/sbin/sendmail
+	HEADERFROM=X-IMAP-Sender
+	IMAPDSTART=YES
+	MAILDIRPATH=Maildir
+	
+	EOF_IMAPD
+	### ------------------------------------------------------------------------------------------------
+	### FIN FICHERO /etc/courier/imapd
+	### 
 
 	############
 	#
