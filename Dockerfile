@@ -43,17 +43,17 @@ ENV HOME /root
 # ------- ------- ------- ------- ------- ------- -------
 #
 # Herramientas SSH, tcpdump y net-tools
-RUN apt-get update && \
-    apt-get -y install 	openssh-server \
-                       	tcpdump \
-                        net-tools
+#RUN apt-get update && \
+#    apt-get -y install 	openssh-server \
+#                       	tcpdump \
+#                        net-tools
 # Setup de SSHD                                                
-RUN mkdir /var/run/sshd
-RUN echo 'root:rootdocker' | chpasswd
-RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-ENV NOTVISIBLE "in users profile"
-RUN echo "export VISIBLE=now" >> /etc/profile
+#RUN mkdir /var/run/sshd
+#RUN echo 'root:rootdocker' | chpasswd
+#RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+#RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+#ENV NOTVISIBLE "in users profile"
+#RUN echo "export VISIBLE=now" >> /etc/profile
 # Script que uso a menudo durante debug
 RUN echo "grep -vh '^[[:space:]]*#' \"\$@\" | grep -v '^//' | grep -v '^;' | grep -v '^\$' | grep -v '^\!' | grep -v '^--'" > /usr/bin/confcat
 RUN chmod 755 /usr/bin/confcat
@@ -62,9 +62,11 @@ RUN chmod 755 /usr/bin/confcat
 # Instalo courier-imap
 # ------- ------- ------- ------- ------- ------- -------
 #
-# Instalo los paquetes básicos
+# La instalación de courier-imap necesita authlib-mysql para poder 
+# comprobar los usuario en una base de datos MySQL, también necesita
+# el paquete gamin (permite notificar cambios en el filesystem, es 
+# un reemplazo más moderno al paquete FAM).
 #
-# Necesario para que instale courier-authlib-mysql
 RUN mkdir -p /var/run/courier/authdaemon
 RUN > /var/run/courier/authdaemon/pid.lock   
 RUN chown -R daemon:daemon /var/run/courier
@@ -72,7 +74,8 @@ RUN chown -R daemon:daemon /var/run/courier
 RUN apt-get update && \
     apt-get -y install 	courier-imap \
     				 	courier-imap-ssl \
-    				 	courier-authlib-mysql
+    				 	courier-authlib-mysql \
+    				 	gamin
 RUN rm -fr /var/run/courier
 
 # SSL
