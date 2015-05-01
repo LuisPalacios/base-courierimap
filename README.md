@@ -10,6 +10,18 @@ Tengo otro repositorio [servicio-correo](https://github.com/LuisPalacios/servici
 * **Dockerfile**: Para crear la base de servicio.
 * **do.sh**: Para arrancar el contenedor creado con esta imagen.
 
+# Personalización
+
+### Volumen
+
+
+Directorio persistente para configurar el Timezone. Crear el directorio /Apps/data/tz y dentro de él crear el fichero timezone. Luego montarlo con -v o con fig.yml
+
+    Montar:
+       "/Apps/data/tz:/config/tz"  
+    Preparar: 
+       $ echo "Europe/Madrid" > /config/tz/timezone
+
 ## Instalación de la imagen
 
 Para usar la imagen desde el registry de docker hub
