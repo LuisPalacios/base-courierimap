@@ -421,7 +421,7 @@ if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	### 
 	
 	# Re-Confirmo los permisos de /data/vmail
-	chown -R vmail:vmail /data/vmail
+	chown -R vmail:vmail /data/vmail &
 
     #
     # Creo el fichero de control para que el resto de 
