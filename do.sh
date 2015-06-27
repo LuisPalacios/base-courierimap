@@ -213,14 +213,19 @@ if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	#  IMAPDSSLSTART controla si courier-imapd-ssl arranca y escucha en el puerto 993
 	#  Será una conexión completamente encriptada, de principio a fin
 	#
-	#  IMAPDSTARTTLS controls si courier-imapd (puerto 443) anuncia que soporta STARTTLS. 
-	#  El cliente IMAP realizará una conexión regular no encriptada por el puerto 443 y
+	#  IMAPDSTARTTLS controla si courier-imapd (puerto 143) anuncia que soporta STARTTLS. 
+	#  El cliente IMAP realizará una conexión regular no encriptada por el puerto 143 y
 	#  al ver que el cliente soporta STARTTLS podrá conmutar a modo encriptado por el 
 	#  mismo puerto 143 antes de hacer el login
 	#
 	#  En mi caso "deshabilito" SSL2 y SSL3, bajo ninguna circunstancia deberían habilitarse,
 	#  ambos están o rotos o con vulnerabilidades graves. 
-	#    Fuente: https://owasp.org/index.php/Transport_Layer_Protection_Cheat_Sheet
+	#  Fuente: https://owasp.org/index.php/Transport_Layer_Protection_Cheat_Sheet
+	#
+	#  IMAP_TLS_REQUIRED=[1|0] controla si queremos forzar TLS. Si es igual a 1 entonces
+	#  se exige que se ejecute STARTTLS antes de login, si está a 0 el cliente podrá 
+	#  hacer login por el puerto 143 sin TLS o bien podrá hacer primero el TLS y luego login.
+	#  En este ejemplo lo dejo a 0 para que puedas hacer ambas pruebas.
 	#
 	#  Mejor práctica: Ofrecer "solo" los protocolos TLS: TLS1.0, TLS 1.1 o TLS 1.2.
 	#
@@ -236,7 +241,7 @@ if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	SSLLOGGEROPTS="-name=imapd-ssl"
 	IMAPDSSLSTART=NO
 	IMAPDSTARTTLS=YES
-	IMAP_TLS_REQUIRED=1
+	IMAP_TLS_REQUIRED=0
 	COURIERTLS=/usr/bin/couriertls
 	TLS_PROTOCOL=TLS1
 	TLS_STARTTLS_PROTOCOL=TLS1
@@ -274,8 +279,8 @@ if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	MYSQL_SERVER		${mysqlHost}
 	MYSQL_USERNAME		${MAIL_DB_USER}
 	MYSQL_PASSWORD		${MAIL_DB_PASS}
-	MYSQL_PORT		${mysqlPort}
-	MYSQL_OPT		0
+	MYSQL_PORT			${mysqlPort}
+	MYSQL_OPT			0
 	MYSQL_DATABASE		${MAIL_DB_NAME}
 	MYSQL_USER_TABLE	mailbox
 	MYSQL_CLEAR_PWFIELD	password
