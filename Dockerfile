@@ -92,10 +92,55 @@ RUN apt-get update && \
 RUN rm -fr /var/run/courier
 
 # SSL
-ADD imapd.cnf /etc/courier/imapd.cnf
 WORKDIR /etc/courier
-RUN rm imapd.pem
-RUN mkimapdcert
+
+##################################################################
+#
+# FICHEROS DE CONFIGURACIÓN DE Courier-Imap
+#
+# Utilizo ficheros externos desde el directorio de datos persistentes
+# En caso de no existir crearé una primera configuración válida. 
+#
+# Utilizo la técnica de enlaces simbólicos (parecida a la de timezone)
+# debido a que el montaje de ficheros no funcionaba con docker 1.6.1.
+#
+# Afecta a cuatro ficheros de configuración.
+#
+# /etc/courier/imapd
+# /etc/courier/authdaemonrc
+# /etc/courier/imapd-ssl
+# /etc/courier/authmysqlrc
+# /etc/courier/imapd.cnf
+#
+#
+# 1) En el DOCKERFILE
+RUN mkdir -p /config/courierimap 
+RUN rm -f /etc/courier/imapd && touch /config/courierimap/imapd && ln -s /config/courierimap/imapd /etc/courier/
+RUN rm -f /etc/courier/authdaemonrc && touch /config/courierimap/authdaemonrc && ln -s /config/courierimap/authdaemonrc /etc/courier/
+RUN rm -f /etc/courier/imapd-ssl && touch /config/courierimap/imapd-ssl && ln -s /config/courierimap/imapd-ssl /etc/courier/
+RUN rm -f /etc/courier/authmysqlrc && touch /config/courierimap/authmysqlrc && ln -s /config/courierimap/authmysqlrc /etc/courier/
+RUN rm -f /etc/courier/imapd.cnf && touch /config/courierimap/imapd.cnf && ln -s /config/courierimap/imapd.cnf /etc/courier/
+#
+# 2) En el Script entrypoint:
+#    if [ -d '/config/courierimap' ]; then
+#        #
+#        # Comprobar si existe cada uno de los cuatro ficheros y crearlos en caso contrario...
+#        # 
+#    fi
+#
+# 3) Al arrancar el contenedor, montar el volumen, a contiuación un ejemplo:
+#     /Apps/data/correo/courierimap:/config/courierimap
+#
+# 4) Modificar la configuración: 
+#     4.1.- Arrancar el contenedor una vez para que se creen los ficheros
+#     4.2.- Parar el contenedor
+#     4.3.- Modificar los ficheros y volver a arrancar el contenedor
+#
+
+# Generar los certificados	
+#ADD imapd.cnf /etc/courier/imapd.cnf
+#RUN rm imapd.pem
+#RUN mkimapdcert
 
 # Puertos por el que escucha el servidor
 #

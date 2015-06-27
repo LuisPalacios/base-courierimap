@@ -104,6 +104,9 @@ else
 	useradd -u 3001 -g vmail -M -d /data/vmail -s /bin/false vmail
 fi
 
+
+
+
 ##################################################################
 #
 # PREPARAR EL CONTAINER POR PRIMERA VEZ
@@ -114,188 +117,319 @@ fi
 #
 if [ ${NECESITA_PRIMER_CONFIG} = "si" ] ; then
 	
-	echo "Configuro IMAP !!"
-	
-	############
+	##################################################################
+	#
+	# FICHEROS DE CONFIGURACIÓN DE Courier-Imap
+	#
+	# Utilizo ficheros externos desde el directorio de datos persistentes
+	# En caso de no existir crearé una primera configuración válida. 
+	#
+	# Utilizo la técnica de enlaces simbólicos (parecida a la de timezone)
+	# debido a que el montaje de ficheros no funcionaba con docker 1.6.1.
+	#
+	# Afecta a cuatro ficheros de configuración.
 	#
 	# /etc/courier/imapd
-	#
-	############
-	
-	#sed -i "s/^MAXDAEMONS=.*/MAXDAEMONS=60/g" /etc/courier/imapd
-    #sed -i "s/^MAXPERIP=.*/MAXPERIP=100/g" /etc/courier/imapd
-    #sed -i "s/^IMAP_TRASHFOLDERNAME=.*/IMAP_TRASHFOLDERNAME=\"Deleted Messages\"/g" /etc/courier/imapd
-    #sed -i "s/^IMAP_EMPTYTRASH=.*/IMAP_EMPTYTRASH=\"Deleted Messages\":7/g" /etc/courier/imapd
-    #sed -i "s/^MAILDIRPATH=.*/MAILDIRPATH=Maildir/g" /etc/courier/imapd
-
-	### 
-	### INICIO FICHERO /etc/courier/imapd
-	### ------------------------------------------------------------------------------------------------
-	cat > /etc/courier/imapd <<-EOF_IMAPD
-	
-	ADDRESS=0
-	PORT=143
-	MAXDAEMONS=60
-	MAXPERIP=100
-	PIDFILE=/var/run/courier/imapd.pid
-	TCPDOPTS="-nodnslookup -noidentlookup"
-	LOGGEROPTS="-name=imapd"
-	IMAP_CAPABILITY="IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE"
-	IMAP_KEYWORDS=1
-	IMAP_ACL=1
-	IMAP_CAPABILITY_ORIG="IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA AUTH=CRAM-MD5 AUTH=CRAM-SHA1 AUTH=CRAM-SHA256 IDLE"
-	IMAP_PROXY=0
-	IMAP_PROXY_FOREIGN=0
-	IMAP_IDLE_TIMEOUT=30
-	IMAP_MAILBOX_SANITY_CHECK=1
-	IMAP_CAPABILITY_TLS="\$IMAP_CAPABILITY AUTH=PLAIN"
-	IMAP_CAPABILITY_TLS_ORIG="\$IMAP_CAPABILITY_ORIG AUTH=PLAIN"
-	IMAP_DISABLETHREADSORT=0
-	IMAP_CHECK_ALL_FOLDERS=0
-	IMAP_OBSOLETE_CLIENT=0
-	IMAP_UMASK=022
-	IMAP_ULIMITD=131072
-	IMAP_USELOCKS=1
-	IMAP_SHAREDINDEXFILE=/etc/courier/shared/index
-	IMAP_ENHANCEDIDLE=1
-	IMAP_TRASHFOLDERNAME="Deleted Messages"
-	IMAP_EMPTYTRASH="Deleted Messages":7
-	IMAP_MOVE_EXPUNGE_TO_TRASH=0
-	SENDMAIL=/usr/sbin/sendmail
-	HEADERFROM=X-IMAP-Sender
-	IMAPDSTART=YES
-	MAILDIRPATH=Maildir
-	
-	EOF_IMAPD
-	### ------------------------------------------------------------------------------------------------
-	### FIN FICHERO /etc/courier/imapd
-	### 
-
-	############
-	#
 	# /etc/courier/authdaemonrc
-	#
-	############
-	#
-	# Responsable de configuración de la librería de autenticación de Courier-Imap. 
-	# La configuro de manera que "solo" compruebe el usuario/contraseña usando SQL
-	
-	### 
-	### INICIO FICHERO  /etc/courier/authdaemonrc
-	### ------------------------------------------------------------------------------------------------
-	cat > /etc/courier/authdaemonrc <<-EOF_AUTHDAEMON
-	
-	authmodulelist="authmysql"
-	daemons=5
-	authdaemonvar=/var/run/courier/authdaemon
-	DEBUG_LOGIN=2
-	DEFAULTOPTIONS=""
-	LOGGEROPTS="-name=courier-imap"
-	
-	EOF_AUTHDAEMON
-	### ------------------------------------------------------------------------------------------------
-	### FIN FICHERO  /etc/courier/authdaemonrc
-	### 
-
-
-
-	############
-	#
 	# /etc/courier/imapd-ssl
-	#
-	############
-	#
-	#
-	#
-	# Hay dos tipos de conexiones encriptadas. La única diferencia 
-	# está en cómo se arrancan: 
-	#
-	#  IMAPDSSLSTART controla si courier-imapd-ssl arranca y escucha en el puerto 993
-	#  Será una conexión completamente encriptada, de principio a fin
-	#
-	#  IMAPDSTARTTLS controla si courier-imapd (puerto 143) anuncia que soporta STARTTLS. 
-	#  El cliente IMAP realizará una conexión regular no encriptada por el puerto 143 y
-	#  al ver que el cliente soporta STARTTLS podrá conmutar a modo encriptado por el 
-	#  mismo puerto 143 antes de hacer el login
-	#
-	#  En mi caso "deshabilito" SSL2 y SSL3, bajo ninguna circunstancia deberían habilitarse,
-	#  ambos están o rotos o con vulnerabilidades graves. 
-	#  Fuente: https://owasp.org/index.php/Transport_Layer_Protection_Cheat_Sheet
-	#
-	#  IMAP_TLS_REQUIRED=[1|0] controla si queremos forzar TLS. Si es igual a 1 entonces
-	#  se exige que se ejecute STARTTLS antes de login, si está a 0 el cliente podrá 
-	#  hacer login por el puerto 143 sin TLS o bien podrá hacer primero el TLS y luego login.
-	#  En este ejemplo lo dejo a 0 para que puedas hacer ambas pruebas.
-	#
-	#  Mejor práctica: Ofrecer "solo" los protocolos TLS: TLS1.0, TLS 1.1 o TLS 1.2.
-	#
-
-	### 
-	### INICIO FICHERO /etc/courier/imapd-ssl
-	### ------------------------------------------------------------------------------------------------
-	cat > /etc/courier/imapd-ssl <<-EOF_IMAPDSSL
-	
-	SSLPORT=993
-	SSLADDRESS=0
-	SSLPIDFILE=/var/run/courier/imapd-ssl.pid
-	SSLLOGGEROPTS="-name=imapd-ssl"
-	IMAPDSSLSTART=NO
-	IMAPDSTARTTLS=YES
-	IMAP_TLS_REQUIRED=0
-	COURIERTLS=/usr/bin/couriertls
-	TLS_PROTOCOL=TLS1
-	TLS_STARTTLS_PROTOCOL=TLS1
-	TLS_CERTFILE=/etc/courier/imapd.pem
-	TLS_DHPARAMS=/etc/courier/dhparams.pem
-	TLS_TRUSTCERTS=/etc/ssl/certs
-	TLS_VERIFYPEER=NONE
-	TLS_CACHEFILE=/var/lib/courier/couriersslcache
-	TLS_CACHESIZE=524288
-	MAILDIRPATH=Maildir
-	
-	EOF_IMAPDSSL
-	### ------------------------------------------------------------------------------------------------
-	### FIN FICHERO /etc/courier/imapd-ssl
-	### 
-
-
-
-	############
-	#
 	# /etc/courier/authmysqlrc
+	# /etc/courier/imapd.cnf
 	#
-	############
 	#
-	# En mi base de datos tengo las contraseñas en clear text, así que elimino la línea
-	# "MYSQL_CRYPT_PWFIELD" del fichero authmysqlrc. 
-	# NOTA: Investigar en el futuro como migrar a contraseñas encriptadas y activar
-	# MYSQL_CRYPT_PWFIELD	password
-	
-	### 
-	### INICIO FICHERO /etc/courier/authmysqlrc
-	### ------------------------------------------------------------------------------------------------
-	cat > /etc/courier/authmysqlrc <<-EOF_AUTHMYSQL
-	
-	MYSQL_SERVER		${mysqlHost}
-	MYSQL_USERNAME		${MAIL_DB_USER}
-	MYSQL_PASSWORD		${MAIL_DB_PASS}
-	MYSQL_PORT			${mysqlPort}
-	MYSQL_OPT			0
-	MYSQL_DATABASE		${MAIL_DB_NAME}
-	MYSQL_USER_TABLE	mailbox
-	MYSQL_CLEAR_PWFIELD	password
-	MYSQL_UID_FIELD		'3001'
-	MYSQL_GID_FIELD		'3008'
-	MYSQL_LOGIN_FIELD	username
-	MYSQL_HOME_FIELD	'/data/vmail'
-	MYSQL_NAME_FIELD	name
-	MYSQL_MAILDIR_FIELD	maildir
-	
-	EOF_AUTHMYSQL
-	### ------------------------------------------------------------------------------------------------
-	### FIN FICHERO /etc/rsyslog.conf  
-	### 
+	# 1) En el DOCKERFILE
+	#    RUN mkdir -p /config/courierimap 
+	#    RUN touch /config/courierimap/imapd && ln -s /config/courierimap/imapd /etc/courier/
+	#    RUN touch /config/courierimap/authdaemonrc && ln -s /config/courierimap/authdaemonrc /etc/courier/
+	#    RUN touch /config/courierimap/imapd-ssl && ln -s /config/courierimap/imapd-ssl /etc/courier/
+	#    RUN touch /config/courierimap/authmysqlrc && ln -s /config/courierimap/authmysqlrc /etc/courier/
+	#    RUN touch /config/courierimap/imapd.cnf && ln -s /config/courierimap/imapd.cnf /etc/courier/
+	#
+	# 2) En el Script entrypoint:
+	#    if [ -d '/config/courierimap' ]; then
+	#        #
+	#        # Comprobar si existe cada uno de los cuatro ficheros y crearlos en caso contrario...
+	#        # 
+	#    fi
+	#
+	# 3) Al arrancar el contenedor, montar el volumen, a contiuación un ejemplo:
+	#     /Apps/data/correo/courierimap:/config/courierimap
+	#
+	# 4) Modificar la configuración: 
+	#     4.1.- Arrancar el contenedor una vez para que se creen los ficheros
+	#     4.2.- Parar el contenedor
+	#     4.3.- Modificar los ficheros y volver a arrancar el contenedor
+	#
 
+	
+	# 2) En el Script entrypoint:
+	if [ -d '/config/courierimap' ]; then
+        #
+        # Comprobar si existe cada uno de los cuatro ficheros y crearlos en caso contrario...
+        # 
+
+		############
+		#
+		# /etc/courier/imapd
+		#
+		############
+	
+		#sed -i "s/^MAXDAEMONS=.*/MAXDAEMONS=60/g" /etc/courier/imapd
+	    #sed -i "s/^MAXPERIP=.*/MAXPERIP=100/g" /etc/courier/imapd
+   		#sed -i "s/^IMAP_TRASHFOLDERNAME=.*/IMAP_TRASHFOLDERNAME=\"Deleted Messages\"/g" /etc/courier/imapd
+    	#sed -i "s/^IMAP_EMPTYTRASH=.*/IMAP_EMPTYTRASH=\"Deleted Messages\":7/g" /etc/courier/imapd
+    	#sed -i "s/^MAILDIRPATH=.*/MAILDIRPATH=Maildir/g" /etc/courier/imapd
+
+		### 
+		### INICIO FICHERO /etc/courier/imapd
+		### ------------------------------------------------------------------------------------------------
+		
+		if [[ ! -s /etc/courier/imapd ]]; then
+		
+			echo "Creo el fichero /etc/courier/imapd !!"
+
+			cat > /etc/courier/imapd <<-EOF_IMAPD
+	
+			ADDRESS=0
+			PORT=143
+			MAXDAEMONS=60
+			MAXPERIP=100
+			PIDFILE=/var/run/courier/imapd.pid
+			TCPDOPTS="-nodnslookup -noidentlookup"
+			LOGGEROPTS="-name=imapd"
+			IMAP_CAPABILITY="IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE"
+			IMAP_KEYWORDS=1
+			IMAP_ACL=1
+			IMAP_CAPABILITY_ORIG="IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA AUTH=CRAM-MD5 AUTH=CRAM-SHA1 AUTH=CRAM-SHA256 IDLE"
+			IMAP_PROXY=0
+			IMAP_PROXY_FOREIGN=0
+			IMAP_IDLE_TIMEOUT=30
+			IMAP_MAILBOX_SANITY_CHECK=1
+			IMAP_CAPABILITY_TLS="\$IMAP_CAPABILITY AUTH=PLAIN"
+			IMAP_CAPABILITY_TLS_ORIG="\$IMAP_CAPABILITY_ORIG AUTH=PLAIN"
+			IMAP_DISABLETHREADSORT=0
+			IMAP_CHECK_ALL_FOLDERS=0
+			IMAP_OBSOLETE_CLIENT=0
+			IMAP_UMASK=022
+			IMAP_ULIMITD=131072
+			IMAP_USELOCKS=1
+			IMAP_SHAREDINDEXFILE=/etc/courier/shared/index
+			IMAP_ENHANCEDIDLE=1
+			IMAP_TRASHFOLDERNAME="Deleted Messages"
+			IMAP_EMPTYTRASH="Deleted Messages":7
+			IMAP_MOVE_EXPUNGE_TO_TRASH=0
+			SENDMAIL=/usr/sbin/sendmail
+			HEADERFROM=X-IMAP-Sender
+			IMAPDSTART=YES
+			MAILDIRPATH=Maildir
+	
+			EOF_IMAPD
+
+		fi
+		### ------------------------------------------------------------------------------------------------
+		### FIN FICHERO /etc/courier/imapd
+		### 
+		
+
+		############
+		#
+		# /etc/courier/authdaemonrc
+		#
+		############
+		#
+		# Responsable de configuración de la librería de autenticación de Courier-Imap. 
+		# La configuro de manera que "solo" compruebe el usuario/contraseña usando SQL
+	
+		### 
+		### INICIO FICHERO  /etc/courier/authdaemonrc
+		### ------------------------------------------------------------------------------------------------
+		
+		if [[ ! -s /etc/courier/authdaemonrc ]]; then
+
+			echo "Creo el fichero /etc/courier/authdaemonrc !!"
+
+			cat > /etc/courier/authdaemonrc <<-EOF_AUTHDAEMON
+	
+			authmodulelist="authmysql"
+			daemons=5
+			authdaemonvar=/var/run/courier/authdaemon
+			DEBUG_LOGIN=2
+			DEFAULTOPTIONS=""
+			LOGGEROPTS="-name=courier-imap"
+	
+			EOF_AUTHDAEMON
+			
+		fi
+		### ------------------------------------------------------------------------------------------------
+		### FIN FICHERO  /etc/courier/authdaemonrc
+		### 
+
+
+		############
+		#
+		# /etc/courier/imapd-ssl
+		#
+		############
+		#
+		#
+		#
+		# Hay dos tipos de conexiones encriptadas. La única diferencia 
+		# está en cómo se arrancan: 
+		#
+		#  IMAPDSSLSTART controla si courier-imapd-ssl arranca y escucha en el puerto 993
+		#  Será una conexión completamente encriptada, de principio a fin
+		#
+		#  IMAPDSTARTTLS controla si courier-imapd (puerto 143) anuncia que soporta STARTTLS. 
+		#  El cliente IMAP realizará una conexión regular no encriptada por el puerto 143 y
+		#  al ver que el cliente soporta STARTTLS podrá conmutar a modo encriptado por el 
+		#  mismo puerto 143 antes de hacer el login
+		#
+		#  En mi caso "deshabilito" SSL2 y SSL3, bajo ninguna circunstancia deberían habilitarse,
+		#  ambos están o rotos o con vulnerabilidades graves. 
+		#  Fuente: https://owasp.org/index.php/Transport_Layer_Protection_Cheat_Sheet
+		#
+		#  IMAP_TLS_REQUIRED=[1|0] controla si queremos forzar TLS. Si es igual a 1 entonces
+		#  se exige que se ejecute STARTTLS antes de login, si está a 0 el cliente podrá 
+		#  hacer login por el puerto 143 sin TLS o bien podrá hacer primero el TLS y luego login.
+		#
+		#  Mejor práctica: Ofrecer "solo" los protocolos TLS: TLS1.0, TLS 1.1 o TLS 1.2.
+		#
+
+		### 
+		### INICIO FICHERO /etc/courier/imapd-ssl
+		### ------------------------------------------------------------------------------------------------
+		
+		if [[ ! -s /etc/courier/imapd-ssl ]]; then
+
+			echo "Creo el fichero /etc/courier/imapd-ssl !!"
+
+			cat > /etc/courier/imapd-ssl <<-EOF_IMAPDSSL
+	
+			SSLPORT=993
+			SSLADDRESS=0
+			SSLPIDFILE=/var/run/courier/imapd-ssl.pid
+			SSLLOGGEROPTS="-name=imapd-ssl"
+			IMAPDSSLSTART=NO
+			IMAPDSTARTTLS=YES
+			IMAP_TLS_REQUIRED=1
+			COURIERTLS=/usr/bin/couriertls
+			TLS_PROTOCOL=TLS1
+			TLS_STARTTLS_PROTOCOL=TLS1
+			TLS_CERTFILE=/etc/courier/imapd.pem
+			TLS_DHPARAMS=/etc/courier/dhparams.pem
+			TLS_TRUSTCERTS=/etc/ssl/certs
+			TLS_VERIFYPEER=NONE
+			TLS_CACHEFILE=/var/lib/courier/couriersslcache
+			TLS_CACHESIZE=524288
+			MAILDIRPATH=Maildir
+	
+			EOF_IMAPDSSL
+		fi
+		### ------------------------------------------------------------------------------------------------
+		### FIN FICHERO /etc/courier/imapd-ssl
+		### 
+
+
+		############
+		#
+		# /etc/courier/authmysqlrc
+		#
+		############
+		#
+		# En mi base de datos tengo las contraseñas en clear text, así que elimino la línea
+		# "MYSQL_CRYPT_PWFIELD" del fichero authmysqlrc. 
+		# NOTA: Investigar en el futuro como migrar a contraseñas encriptadas y activar
+		# MYSQL_CRYPT_PWFIELD	password
+		
+		### 
+		### INICIO FICHERO /etc/courier/authmysqlrc
+		### ------------------------------------------------------------------------------------------------
+		
+		if [[ ! -s /etc/courier/authmysqlrc ]]; then
+
+			echo "Creo el fichero /etc/courier/authmysqlrc !!"
+
+			cat > /etc/courier/authmysqlrc <<-EOF_AUTHMYSQL
+	
+			MYSQL_SERVER		${mysqlHost}
+			MYSQL_USERNAME		${MAIL_DB_USER}
+			MYSQL_PASSWORD		${MAIL_DB_PASS}
+			MYSQL_PORT			${mysqlPort}
+			MYSQL_OPT			0
+			MYSQL_DATABASE		${MAIL_DB_NAME}
+			MYSQL_USER_TABLE	mailbox
+			MYSQL_CLEAR_PWFIELD	password
+			MYSQL_UID_FIELD		'3001'
+			MYSQL_GID_FIELD		'3008'
+			MYSQL_LOGIN_FIELD	username
+			MYSQL_HOME_FIELD	'/data/vmail'
+			MYSQL_NAME_FIELD	name
+			MYSQL_MAILDIR_FIELD	maildir
+		
+			EOF_AUTHMYSQL
+		
+		fi
+		### ------------------------------------------------------------------------------------------------
+		### FIN FICHERO /etc/courier/authmysqlrc  
+		### 
+
+
+		############
+		#
+		# /etc/courier/imapd.cnf
+		#
+		############
+		#
+		# Este fichero se utiliza para crear tus propios certificados. 
+		
+		### 
+		### INICIO FICHERO /etc/courier/imapd.cnf
+		### ------------------------------------------------------------------------------------------------
+		
+		if [[ ! -s /etc/courier/imapd.cnf ]]; then
+
+			echo "Creo el fichero /etc/courier/imapd.cnf !!"
+
+			cat > /etc/courier/imapd.cnf <<-EOF_IMAPDCNF
+	
+			RANDFILE = /etc/courier/imapd.rand
+			
+			[ req ]
+			default_bits = 4096
+			encrypt_key = yes
+			distinguished_name = req_dn
+			x509_extensions = cert_type
+			prompt = no
+			default_md = sha1
+			
+			[ req_dn ]
+			C=ES
+			ST=Madrid
+			L=Mi querido pueblo
+			O=Org
+			OU=Clave SSL IMAP
+			CN=localhost
+			emailAddress=postmaster@tld.org
+
+			[ cert_type ]
+			nsCertType = server
+			
+			EOF_IMAPDCNF
+		
+			cd /etc/courier
+			rm -f imapd.pem
+			mkimapdcert
+
+			#
+			# ToDo !!!.. De momento no regenero los certificados si se modifica el 
+			# fichero impad.pem externamente... ToDo !!!!
+			#
+
+		fi
+		### ------------------------------------------------------------------------------------------------
+		### FIN FICHERO /etc/courier/imapd.cnf  
+		### 
+
+	fi
 
 
 	############
