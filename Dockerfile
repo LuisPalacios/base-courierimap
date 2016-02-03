@@ -87,8 +87,11 @@ RUN chown -R daemon:daemon /var/run/courier
 RUN apt-get update && \
     apt-get -y install 	courier-imap \
     				 	courier-imap-ssl \
-    				 	courier-authlib-mysql \
-    				 	gamin
+    				 	courier-authlib-mysql 
+
+# NOTA: En Feb/2016 elimino "gamin" debido a problemas de rendimiento
+#       Además pongo IMAP_ENHANCEDIDLE=0
+
 RUN rm -fr /var/run/courier
 
 # SSL
